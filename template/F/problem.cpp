@@ -20,6 +20,7 @@
 #include <functional>
 #include <bitset>
 #include <valarray>
+#include <utility>
 
 using namespace std;
 
@@ -32,11 +33,15 @@ using namespace std;
 #define all(v) (v).begin(), (v).end()
 #define MP make_pair
 
+template<class T>
+class IsIterable__ {static void f(...); template<class U> static typename U::const_iterator f(const U&);
+public:const static bool value = !std::is_same<void, decltype(f(std::declval<T>()))>::value;};
+
 template <class F, class S> ostream& operator << (ostream& o, const pair<F,S>& p) {
 return o << "(" << p.first << ", " << p.second << ")";}
 
 template<class C>void O__(ostream& o, const C& c) {
-bool f = 1; for(const auto& x: c) {if (!f) o << ", "; f = 0; o << x;}}
+bool f = 1; for(const auto& x: c) {if (!f) o << ", "; if (IsIterable__<decltype(x)>::value) o << "\n"; f = 0; o << x;}}
 
 template <class T>
 ostream& operator << (ostream& o, const vector<T>& v) {o << "[";O__(o, v);o << "]";return o;}
