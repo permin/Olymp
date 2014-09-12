@@ -21,7 +21,10 @@
 #include <bitset>
 #include <valarray>
 #include <utility>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
 
+using namespace __gnu_pbds;
 using namespace std;
 
 #ifdef LOCAL_RUN
@@ -64,7 +67,12 @@ const double EPS = 1e-9;
 const int INF = std::numeric_limits<int>::max();
 const long long LLINF = std::numeric_limits<ll>::max();
 
+// supports find_by_order(int) and order_of_key(Key)
+template<class Key, class Value>
+using MapWithOrderStatistics = tree<Key, Value,
+      std::less<Key>, rb_tree_tag /*splay_tree_tag*/,
+      tree_order_statistics_node_update>;
+
 int main() {
     return 0;
 }
-
