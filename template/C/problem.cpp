@@ -74,5 +74,6 @@ using MapWithOrderStatistics = tree<Key, Value,
       tree_order_statistics_node_update>;
 
 int main() {
+    std::ios_base::sync_with_stdio(false);
     return 0;
 }

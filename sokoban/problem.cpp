@@ -367,15 +367,10 @@ std::vector<State> getTransitions(const State& state) {
             }
         }
     }
+    return res;
 }
 
-template<class T, class S = std::ptr_fun(swap<T>)>
-struct C {
-
-};
-
 int main() {
-    C<int> cc;
     vector<string> plan;
     string s;
     while (cin >> s) {
