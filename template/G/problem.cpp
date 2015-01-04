@@ -67,11 +67,13 @@ const double EPS = 1e-9;
 const int INF = std::numeric_limits<int>::max();
 const long long LLINF = std::numeric_limits<ll>::max();
 
+#if GCC_VERSION > 40900
 // supports find_by_order(int) and order_of_key(Key)
 template<class Key, class Value>
 using MapWithOrderStatistics = tree<Key, Value,
       std::less<Key>, rb_tree_tag /*splay_tree_tag*/,
       tree_order_statistics_node_update>;
+#endif
 
 int main() {
     std::ios_base::sync_with_stdio(false);
