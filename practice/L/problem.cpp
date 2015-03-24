@@ -21,6 +21,7 @@
 #include <bitset>
 #include <valarray>
 #include <utility>
+#include <atomic>
 #include <ext/pb_ds/assoc_container.hpp>
 #include <ext/pb_ds/tree_policy.hpp>
 
@@ -73,6 +74,96 @@ using MapWithOrderStatistics = tree<Key, Value,
       std::less<Key>, rb_tree_tag /*splay_tree_tag*/,
       tree_order_statistics_node_update>;
 
+vi a;
+vi o;
+vi l;
+
+class CountryGroupHard
+{
+public:
+
+    int solve(int pos, const vi& a, vi& dp) {
+        int &res = dp[pos];
+        if (res >=0 )
+            return res;
+        res = 0;
+        for (int i = 1; i + pos - 1 < a.size(); ++i) {
+            bool ok = 1;
+            for (int j = 0; j < i; ++j) {
+                int p = pos + j;
+                if (p >= (int)a.size()) {
+                    ok = 0;
+                    break;
+                }
+                if (a[p] != 0 && a[p] != i) {
+                    ok = 0;
+                    break;
+                }
+            }
+            if (ok)
+                res += solve(pos + i, a, dp);
+        }
+        return res;
+    }
+
+	int solve(vector <int> a)
+	{
+        int n = (int) a.size();
+        vi dp(n + 1, -1);
+        dp.back() = 1;
+        return solve(0, a, dp);
+	}
+};
+
+void doit(int pos, int prod, int sum) {
+    if (sum < 0)
+        return;
+    if (pos == o.size())
+        return;
+    if (prod == 1 && !a.empty()) {
+        std::cerr << "Win!!!\n";
+        debug(a);
+        exit(0);
+    }
+    doit(pos + 1, prod, sum);
+    a.push_back(o[pos]);
+    doit(pos, prod * o[pos], sum - l[pos] - (a.empty()? 0:1));
+    a.pop_back();
+}
+
+vi gen(int n, int m) {
+    vi res;
+    for (int i = 0; i < n; ++i) {
+        res.push_back(rand() % m);
+    }
+    return res;
+}
+
 int main() {
+    map<int, int> len;
+    {
+        int it = 100*10000;
+        CountryGroupHard solver;
+        while(it-->0){
+            vi a = gen(1 + rand() % 21, 1 + (rand() % 5));
+            int x = solver.solve(a);
+            if (x & 1) {
+                if (x == 1)
+                    continue;
+                if (len.count(x) == 0)
+                    len[x] = INF;
+                len[x] = min(len[x], int(a.size()));
+            }
+        }
+    }
+    debug(len);
+    for (auto kv: len) {
+        int ll, oo;
+        ll = kv.second;
+        oo = kv.first;
+        l.push_back(ll);
+        o.push_back(oo);
+    }
+    doit(0, 1, 100);
     return 0;
 }

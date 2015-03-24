@@ -20,6 +20,7 @@
 #include <functional>
 #include <bitset>
 #include <valarray>
+#include <thread>
 #include <utility>
 #include <ext/pb_ds/assoc_container.hpp>
 #include <ext/pb_ds/tree_policy.hpp>
@@ -73,6 +74,43 @@ using MapWithOrderStatistics = tree<Key, Value,
       std::less<Key>, rb_tree_tag /*splay_tree_tag*/,
       tree_order_statistics_node_update>;
 
+int g(int i, int j) {
+    int ans = 0;
+    for (int k = 0; k < 100; ++k)
+        if (abs(i+j-k)<abs(ans-i-j))
+            ans = k;
+    return ans;
+}
+
+void f(int n) {
+    vii am(n, vi(n));
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < n; ++j) {
+            am[i][j] = (1 + i + j + i * i + j * j) % n;
+            am[i][j] += 10;
+            if (i == j)
+                am[i][j] = 0;
+        }
+    for (int k = 0; k < n; ++k)
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < n; ++j)
+                am[i][j] = min(am[i][j], g(am[i][k] ,am[k][j]));
+    debug(am[0][n-1]);
+}
+
 int main() {
+    std::vector<std::thread> threads;
+    const int maxThreads = 20;
+    int k = 0;
+    while(k < maxThreads) {
+        threads.push_back(std::thread(f, 200 + k));
+                //std::move(std::thread(
+            //std::bind(&Solver::solve, solvers_[i]))));
+        //++k;
+        //++i;
+        ++k;
+    }
+    for (auto& t: threads)
+        t.join();
     return 0;
 }

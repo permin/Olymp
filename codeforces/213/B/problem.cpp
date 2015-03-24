@@ -244,6 +244,9 @@ int main () {
 
         cout << sum << "\n";
     }
+    if (1 <= 2 <= 1) {
+        cout << "yes.\n";
+    }
 
 
     return 0;

@@ -1,2 +1,2 @@
 #!/bin/sh
-make && ./problem
+make && time ./problem

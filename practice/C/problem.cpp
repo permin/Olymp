@@ -79,7 +79,7 @@ struct Node;
 template<class Data>
 size_t getSubtreeSize(Node<Data>* r);
 
-struct UpitData {
+struct UData {
     UpitData():
         sum(0),yValue(0),slope(0), value(-1), actual(0){}
     explicit UpitData(size_t x):

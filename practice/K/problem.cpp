@@ -21,10 +21,7 @@
 #include <bitset>
 #include <valarray>
 #include <utility>
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/tree_policy.hpp>
 
-using namespace __gnu_pbds;
 using namespace std;
 
 #ifdef LOCAL_RUN
@@ -67,12 +64,47 @@ const double EPS = 1e-9;
 const int INF = std::numeric_limits<int>::max();
 const long long LLINF = std::numeric_limits<ll>::max();
 
-// supports find_by_order(int) and order_of_key(Key)
-template<class Key, class Value>
-using MapWithOrderStatistics = tree<Key, Value,
-      std::less<Key>, rb_tree_tag /*splay_tree_tag*/,
-      tree_order_statistics_node_update>;
+int solve(vi a,int  x) {
+    for (int i: a)
+        if (i > x)
+            return i;
+    return -1;
+}
+
+int bin(vi a, int x) {
+    int l = 0;
+    int r = int(a.size());
+    while(l + 1 < r) {
+        int m = (l + r) / 2;
+        if (a[m] <= x)
+            l = m;
+        else
+            r = m;
+    }
+    if (l < a.size())
+        return a[l];
+    return -1;
+}
 
 int main() {
+
+    while(true){
+        int l = rand() % 20;
+        vi a;
+        for (int i = 0; i < l; ++i)
+            a.push_back(rand() % 10);
+        sort(all(a));
+
+        int x = rand() % 30;
+        x -= 15;
+
+        debug(a);
+        debug(x);
+        debug(bin(a,x));
+        debug(solve(a,x));
+
+        assert(bin(a,x) == solve(a,x));
+
+    }
     return 0;
 }

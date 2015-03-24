@@ -73,6 +73,200 @@ using MapWithOrderStatistics = tree<Key, Value,
       std::less<Key>, rb_tree_tag /*splay_tree_tag*/,
       tree_order_statistics_node_update>;
 
+#include <cstdio>
+#include <cstdlib>
+#include <cassert>
+#include <memory.h>
+
+// van Emde Boas Tree by Arthur "Inviz" Khashaev
+// special for habrahabr :)
+
+// This is a data structure used to store integers in bound [0; U), where U = 2^k
+
+// Asymptotic complexity:
+// Insert, Lookup, FindNext, Remove, etc -- O(log(log(U)))
+// Space -- O(U)
+
+#define NONE(K) (1ULL << K)
+
+template <unsigned K>
+class VebTree {
+private:
+        unsigned long long T_min, T_max;
+        VebTree<(K >> 1)> *T[1ULL << (K >> 1)], *aux;
+public:
+        VebTree(): T_min(NONE(K)), aux(NULL) {
+                memset(T, 0, sizeof(T));
+        }
+
+        ~VebTree() {
+                delete aux;
+                for (unsigned long long i = 0; i < (1ULL << (K >> 1)); ++i) {
+                        delete T[i];
+                }
+        }
+
+        inline bool empty() const {
+                return T_min == NONE(K);
+        }
+
+        inline unsigned long long get_min() const {
+                return T_min;
+        }
+
+        inline unsigned long long get_max() const {
+                return T_max;
+        }
+
+        inline unsigned long long high(unsigned long long key) const {
+                return key >> (K >> 1);
+        }
+
+        inline unsigned long long low(unsigned long long key) const {
+                return key & ((1ULL << (K >> 1)) - 1ULL);
+        }
+
+        inline unsigned long long merge(unsigned long long high, unsigned long long low) const {
+                return (high << (K >> 1)) + low;
+        }
+
+        void insert(unsigned long long key) {
+                if (empty()) {
+                        T_min = T_max = key;
+                } else {
+                        if (key < T_min) {
+                                unsigned long long temp_key = key;
+                                key = T_min;
+                                T_min = temp_key;
+                        }
+                        if (key > T_max) {
+                                T_max = key;
+                        }
+                        if (K != 1) {
+                                unsigned long long key_high = high(key);
+                                unsigned long long key_low = low(key);
+                                if (T[key_high] == NULL) {
+                                        T[key_high] = new VebTree<(K >> 1)>();
+                                }
+                                if (T[key_high]->empty()) {
+                                        if (aux == NULL) {
+                                                aux = new VebTree<(K >> 1)>();
+                                        }
+                                        aux->insert(key_high);
+                                }
+                                T[key_high]->insert(key_low);
+                        }
+                }
+        }
+
+        unsigned long long find_next(unsigned long long key) {
+                if (key <= T_min) {
+                        return T_min;
+                }
+                if (empty() || key > T_max) {
+                        return NONE(K);
+                }
+                if (K == 1) {
+                        return T_max == key ? key : NONE(K);
+                }
+                unsigned long long key_high = high(key);
+                unsigned long long key_low = low(key);
+                if (T[key_high] != NULL && key_low <= T[key_high]->get_max()) {
+                        return merge(key_high, T[key_high]->find_next(key_low));
+                } else if (aux != NULL) {
+                        unsigned long long next_high = aux->find_next(key_high + 1);
+                        if (next_high != NONE(K >> 1)) {
+                                return merge(next_high, T[next_high]->get_min());
+                        }
+                }
+                return NONE(K);
+        }
+
+        bool lookup(unsigned long long key) {
+                if (key == T_min || key == T_max) {
+                        return true;
+                } else {
+                        unsigned long long key_high = high(key);
+                        unsigned long long key_low = low(key);
+                        return T[key_high] != NULL && T[key_high]->lookup(key_low);
+                }
+        }
+};
+
+class Timer {
+    double secondsSpent_;
+    clock_t startTime_;
+
+    double currentTime() const {
+        return  startTime_ == -1 ? 0.0 : 1.0 * (clock() - startTime_) / CLOCKS_PER_SEC;
+    }
+
+public:
+    Timer():
+        secondsSpent_(0.0),
+        startTime_(-1) {}
+
+    double totalTime() const {
+        return secondsSpent_ + currentTime();
+    }
+
+    void print() const {
+        std::cerr << totalTime() << " sec.\n";
+    }
+
+    void start() {
+        assert(startTime_ == -1);
+        startTime_ = clock();
+    }
+
+    void pause() {
+        secondsSpent_ += currentTime();
+        assert(startTime_ != -1);
+        startTime_ = -1;
+    }
+};
+
+std::vector<size_t> generateRandomArray(size_t maxValue, size_t length) {
+    std::random_device s;
+    std::vector<size_t> a;
+    for (int i = 0; i < length; ++i)
+        a.push_back(s() % (1 + maxValue));
+    return a;
+}
+
+
 int main() {
+    vector<size_t>  a = generateRandomArray(INF/2, 1000*1000*30);
+    sort(all(a));
+    a.erase(std::unique(all(a)), a.end());
+    random_shuffle(all(a));
+    debug(a.size());
+
+    {
+        Timer t;
+        t.start();
+        {
+        set<size_t> rbtree;
+        for (size_t x: a) {
+            assert(rbtree.count(x) == 0);
+            rbtree.insert(x);
+        }
+        }
+        t.pause();
+        t.print();
+    }
+    {
+        Timer t;
+        t.start();
+        {
+        VebTree<32> tree;
+        for (size_t x: a) {
+            assert(tree.find_next(x) != x);
+            tree.insert(x);
+        }
+        }
+        t.pause();
+        t.print();
+    }
     return 0;
 }
