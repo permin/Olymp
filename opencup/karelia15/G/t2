@@ -1,0 +1,4 @@
+3
+(cab*|a*c|(ba|cb*))|a
+a*$$b*c$$(a$)*|b
+((a|a*)aa(a|b*|c))|((b|b|b|b|b))

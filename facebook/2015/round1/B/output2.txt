@@ -1,0 +1,17 @@
+Case #1: 392317
+Case #2: 7
+Case #3: 6
+Case #4: 183
+Case #5: 12
+Case #6: 392416
+Case #7: 5
+Case #8: 8
+Case #9: 21
+Case #10: 180
+Case #11: 392300
+Case #12: 11
+Case #13: 179
+Case #14: 392443
+Case #15: 392341
+Case #16: 182
+Case #17: 

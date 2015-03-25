@@ -1,0 +1,10 @@
+"Sufficient"
+{0,2,3,0,0}
+"Insufficient"
+{0,2,0}
+"Sufficient"
+{0,3,0,0,3,0}
+"Insufficient"
+{0,0,3,3,0,0}
+"Sufficient"
+{2,2,0,2,2}

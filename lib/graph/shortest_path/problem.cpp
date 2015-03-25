@@ -21,10 +21,7 @@
 #include <bitset>
 #include <valarray>
 #include <utility>
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/tree_policy.hpp>
 
-using namespace __gnu_pbds;
 using namespace std;
 
 #ifdef LOCAL_RUN
@@ -75,7 +72,156 @@ using MapWithOrderStatistics = tree<Key, Value,
       tree_order_statistics_node_update>;
 #endif
 
-size_t G;
+size_t IterationsCount;
+
+// MyList: begin
+template<class T>
+struct ListNode {
+    ListNode():
+        previousNode(nullptr),
+        nextNode(nullptr) {
+    }
+
+    explicit ListNode(const T& x):
+        data(x),
+        previousNode(nullptr),
+        nextNode(nullptr) {
+    }
+
+    T data;
+    ListNode* previousNode;
+    ListNode* nextNode;
+};
+
+template<class T>
+struct MyListIter {
+    typedef T value_type;
+
+    explicit MyListIter(ListNode<T>* ptr=nullptr):
+        node(ptr) {
+    }
+    T& operator*() {
+        return node->data;
+    }
+    MyListIter<T> operator++() {
+        node = node->nextNode;
+        return *this;
+    }
+    MyListIter<T> operator++(int) {
+        auto res = *this;
+        node = node->nextNode;
+        return res;
+    }
+
+    ListNode<T>* node;
+};
+
+template<class T>
+struct MyListConstIter {
+    typedef T value_type;
+
+    explicit MyListConstIter(ListNode<T>* const ptr=nullptr):
+        node(ptr) {
+    }
+    const T& operator*() const {
+        return node->data;
+    }
+    MyListConstIter<T> operator++() {
+        node = node->nextNode;
+        return *this;
+    }
+    MyListConstIter<T> operator++(int) {
+        auto res = *this;
+        node = node->nextNode;
+        return res;
+    }
+
+    ListNode<T>* node;
+};
+
+template<class T>
+bool operator!=(MyListConstIter<T> i, MyListConstIter<T> j) {
+    return i.node != j.node;
+}
+
+template<class T>
+bool operator!=(MyListIter<T> i, MyListIter<T> j) {
+    return i.node != j.node;
+}
+
+template<class T>
+struct MyList {
+    typedef T value_type;
+    typedef MyListIter<T> iterator;
+    typedef MyListConstIter<T> const_iterator;
+
+    MyList():
+        begin_(nullptr),
+        end_(newNode()) {
+            begin_ = end_;
+    }
+
+    MyListConstIter<T> begin() const {
+        return MyListConstIter<T>(begin_);
+    }
+
+    MyListConstIter<T> end() const {
+        return MyListConstIter<T>(end_);
+    }
+
+    MyListIter<T> begin() {
+        return MyListIter<T>(begin_);
+    }
+
+    MyListIter<T> end() {
+        return MyListIter<T>(end_);
+    }
+
+    MyListIter<T> insert(MyListIter<T> before, const T& x) {
+        ListNode<T>* ptr = newNode(x);
+        if (before.node != begin_) {
+            ListNode<T>* prevBefore = before.node->previousNode;
+            prevBefore->nextNode = ptr;
+            ptr->previousNode = prevBefore;
+        } else {
+            begin_ = ptr;
+        }
+
+        before.node->previousNode = ptr;
+        ptr->nextNode = before.node;
+        return MyListIter<T>(ptr);
+    }
+
+    void erase(MyListIter<T> what) {
+        if (what.node != begin_) {
+             ListNode<T>* prevWhat = what.node->previousNode;
+             prevWhat->nextNode = what.node->nextNode;
+             what.node->nextNode->previousNode = prevWhat;
+        } else {
+             begin_ =  what.node->nextNode;
+        }
+    }
+
+    ListNode<T>* newNode(const T& t = T()) {
+        if (ind == M)
+            return new ListNode<T>(t);
+        else {
+            ns[ind].data = t;
+            return &ns[ind++];
+        }
+    }
+
+    static const size_t M = 10;
+    size_t ind = 0;
+    ListNode<T> ns[M];
+    ListNode<T>* begin_;
+    ListNode<T>* end_;
+};
+
+
+
+// MyList: end
+
 
 // REQUIRE: begin
 #define REQUIRE(cond, text) do { \
@@ -136,13 +282,17 @@ OnDiscoverVertex_<F> onDiscoverVertex(F f) {
 
 template<class Graph, class Visitor>
 void depthFirstSearch(size_t vertex, const Graph& graph, std::vector<bool>& used, Visitor visitor) {
+    ++IterationsCount;
     if (used[vertex])
         return;
     visitor.discoverVertex(vertex);
     used[vertex] = true;
     for (const auto& edge: graph.outgoingEdges(vertex)) {
-        visitor.examineVertex(target(edge));
-        depthFirstSearch(target(edge), graph, used, visitor);
+        size_t v2 = target(edge);
+        visitor.examineVertex(v2);
+        if (!used[v2]) {
+            depthFirstSearch(v2, graph, used, visitor);
+        }
     }
     visitor.finishVertex(vertex);
 }
@@ -197,6 +347,26 @@ inline typename E::WeightType weight(const E& edge) {
     return edge.weight;
 }
 
+struct ResidualNetEdge;
+size_t source(const ResidualNetEdge&);
+size_t target(const ResidualNetEdge&);
+
+template<class E>
+bool operator<(const E& e1, const E& e2) {
+    if (source(e1) != source(e2)) {
+        return source(e1) < source(e2);
+    }
+    if (target(e1) != target(e2)) {
+        return target(e1) < target(e2);
+    }
+
+    return weight(e1) < weight(e2);
+}
+
+template<class E>
+bool operator==(const E& e1, const E& e2) {
+    return !((e1<e2) || (e2<e1));
+}
 // Edge: end
 
 // MutableForest: begin
@@ -207,29 +377,37 @@ public:
     typedef typename std::list<EdgeType>::const_iterator EdgeIterator;
 
     explicit MutableForest(size_t vertices):
-            adjacentEdges_(vertices),
-            position_(vertices),
-            parent_(vertices, UNDEFINED_VERTEX) {
+        adjacentEdges_(vertices),
+        position_(vertices),
+        parent_(vertices, UNDEFINED_VERTEX),
+        edges_(0) {
     }
+
 
     size_t numberOfVertices() const {
         return adjacentEdges_.size();
     }
 
-    IteratorRange<EdgeIterator> outgoingEdges(size_t vertex) const {
+    const std::list<EdgeType>& outgoingEdges(size_t vertex) const {
+        return adjacentEdges_[vertex];
+    }
+   /* IteratorRange<EdgeIterator> outgoingEdges(size_t vertex) const {
         return IteratorRange<EdgeIterator>(
                 adjacentEdges_[vertex].begin(),
                 adjacentEdges_[vertex].end());
-    }
+    }*/
+
 
     void addEdge(const EdgeType& edge) {
+        ++IterationsCount;
         REQUIRE(parent_[target(edge)] == UNDEFINED_VERTEX,
             "Edge " << source(edge) << "->" << target(edge) <<
             " can not be added, " << target(edge) << " has already " <<
             " parent " << parent_[target(edge)]);
         parent_[target(edge)] = source(edge);
         position_[target(edge)] = adjacentEdges_[source(edge)].insert(
-            adjacentEdges_[source(edge)].begin(), edge);
+            adjacentEdges_[source(edge)].end(), edge);
+        ++edges_;
     }
 
     size_t parent(size_t vertex) const {
@@ -237,16 +415,24 @@ public:
     }
 
     void cutSubtree(size_t vertex) {
+        ++IterationsCount;
         REQUIRE(parent_[vertex] != UNDEFINED_VERTEX,
             "Vertex " << vertex << " can not be cut, it has no parent");
         adjacentEdges_[parent_[vertex]].erase(position_[vertex]);
         parent_[vertex] = UNDEFINED_VERTEX;
+        --edges_;
+    }
+
+    size_t edgesNumber() const {
+        return edges_;
     }
 
 private:
     std::vector<std::list<EdgeType>> adjacentEdges_;
     std::vector<typename std::list<EdgeType>::iterator > position_;
+
     std::vector<size_t> parent_;
+    size_t edges_;
 };
 // MutableForest: end
 
@@ -260,6 +446,10 @@ class SingleSourceShortestPathInfo {
 public:
     typedef EdgeType_ EdgeType;
     typedef typename EdgeType::WeightType WeightType;
+
+    SingleSourceShortestPathInfo():
+        source_(UNDEFINED_VERTEX) {
+    }
 
     size_t source() const {
         return source_;
@@ -318,6 +508,10 @@ public:
     typedef EdgeType_ EdgeType;
     typedef typename EdgeType::WeightType WeightType;
 
+    SingleSourceShortestPathInfoBuilder():
+        source_(UNDEFINED_VERTEX) {
+    }
+
     SingleSourceShortestPathInfoBuilder(size_t vertices, size_t source):
             distances_(vertices, Infinity),
             previousEdge_(vertices),
@@ -325,16 +519,17 @@ public:
         distances_[source] = WeightType(0);
     }
 
-    // Calls onRelax(oldDist, newDist, oldEdge);
+    // Calls onRelax(oldDist, newDist);
     template<class Callback>
     void relax(const EdgeType& e, Callback onRelax) {
-        if (distances_[e.source] == Infinity)
+        ++IterationsCount;
+        if (distances_[::source(e)] == Infinity)
             return;
-        if (distances_[e.source] + weight(e) < distances_[e.target]) {
-            WeightType oldDist = distances_[e.target];
-            distances_[e.target] = distances_[e.source] + weight(e);
-            onRelax(oldDist, distances_[e.target]);
-            previousEdge_[e.target] = e;
+        if (distances_[::source(e)] + weight(e) < distances_[target(e)]) {
+            WeightType oldDist = distances_[target(e)];
+            distances_[target(e)] = distances_[::source(e)] + weight(e);
+            onRelax(oldDist, distances_[target(e)]);
+            previousEdge_[target(e)] = e;
         }
     }
 
@@ -458,15 +653,14 @@ SingleSourceShortestPathInfo<typename Graph::EdgeType> dijkstra(
                     "All edges weights should be nonnegative");
 
                 builder.relax(edge, [&] (WeightType oldDist, WeightType newDist) {
-                    verticesToProces.erase({oldDist, edge.target});
-                    verticesToProces.insert({newDist, edge.target});
+                    verticesToProces.erase({oldDist, target(edge)});
+                    verticesToProces.insert({newDist, target(edge)});
                 });
             }
         }
         return builder.build();
     }
 }
-
 // Shortest path Dijkstra: end
 
 // Shortest path FordBellman: begin
@@ -485,6 +679,7 @@ SingleSourceShortestPathInfo<typename Graph::EdgeType> fordBellman(
     std::vector<bool> inQueue(vertices);
 
     auto push = [&](size_t v) {
+        ++IterationsCount;
         if (inQueue[v]) return;
         if (insertionsInQueue[v] == 1 + vertices) return;
         ++insertionsInQueue[v];
@@ -492,6 +687,7 @@ SingleSourceShortestPathInfo<typename Graph::EdgeType> fordBellman(
         verticesToProces.push(v);
     };
     auto pop = [&] ()->size_t {
+        ++IterationsCount;
         size_t r = verticesToProces.front();
         verticesToProces.pop();
         inQueue[r] = false;
@@ -500,17 +696,22 @@ SingleSourceShortestPathInfo<typename Graph::EdgeType> fordBellman(
 
     push(source);
 
+    size_t extracted = 0;
     while(!verticesToProces.empty()) {
+        ++extracted;
         size_t v = pop();
         for (const EdgeType& e: graph.outgoingEdges(v)) {
+            ++IterationsCount;
             builder.relax(e, [&](WeightType, WeightType) {
                 push(target(e));
             });
         }
     }
+    debug(extracted);
 
     std::vector<bool> used(vertices);
     for (size_t v = 0; v < vertices; ++v) {
+        ++IterationsCount;
         if (insertionsInQueue[v] > vertices) {
             depthFirstSearch(v, graph, used, onDiscoverVertex([&](size_t v) {
                 builder.thereIsNoShortestPathTo(v);
@@ -536,11 +737,10 @@ SingleSourceShortestPathInfo<typename Graph::EdgeType> tarjan(
     std::vector<size_t> insertionsInQueue(vertices);
     std::vector<bool> inQueue(vertices);
 
-    vector<std::list<int>::iterator> where(vertices);
-    vector<std::list<int>> childs(vertices);
     vector<bool> skip(vertices);
 
     auto push = [&](size_t v) {
+        ++IterationsCount;
         skip[v] = false;
         if (inQueue[v]) return;
         if (insertionsInQueue[v] == 1 + vertices) return;
@@ -549,39 +749,58 @@ SingleSourceShortestPathInfo<typename Graph::EdgeType> tarjan(
         verticesToProces.push(v);
     };
     auto pop = [&] ()->size_t {
+        ++IterationsCount;
         size_t r = verticesToProces.front();
         verticesToProces.pop();
         inQueue[r] = false;
         return r;
     };
 
-    MutableForest<SimpleEdge> prevLinksForest(vertices);
+    MutableForest<EdgeType> prevLinksForest(vertices);
 
     push(source);
+    std::vector<bool> used(vertices);
+    size_t exrt, skipped;
+    exrt = skipped = 0;
     while(!verticesToProces.empty()) {
+        ++exrt;
+        //debug(prevLinksForest.edgesNumber());
         size_t v = pop();
-        if (skip[v])
+        //debug(v);
+        if (skip[v]) {
+        //    debug(v);
+            ++skipped;
             continue;
+        }
         for (const EdgeType& e: graph.outgoingEdges(v)) {
+            ++IterationsCount;
             builder.relax(e, [&](WeightType, WeightType) {
+                ++IterationsCount;
+                std::vector<size_t> acc;
                 depthFirstSearch(::target(e),
-                    prevLinksForest, skip, onDiscoverVertex(
+                    prevLinksForest, used, onDiscoverVertex(
                     [&](size_t vertex) {
-                        skip[vertex] = true;
+                        acc.push_back(vertex);
                 }));
-                if (prevLinksForest.parent(target(e)) != UNDEFINED_VERTEX) {
-                    prevLinksForest.cutSubtree(target(e));
+                for (size_t v2: acc) {
+                    ++IterationsCount;
+                    skip[v2] = true;
+                    used[v2] = false;
+                    if (prevLinksForest.parent(v2) != UNDEFINED_VERTEX) {
+                        prevLinksForest.cutSubtree(v2);
+                    }
                 }
-                if (prevLinksForest.parent(::target(e)) == UNDEFINED_VERTEX) {
-                    prevLinksForest.addEdge(SimpleEdge(::source(e), target(e)));
-                }
+                prevLinksForest.addEdge(e);
                 push(target(e));
             });
         }
     }
 
-    std::vector<bool> used(vertices);
+    debug(exrt);
+    debug(skipped);
+
     for (size_t v = 0; v < vertices; ++v) {
+        ++IterationsCount;
         if (insertionsInQueue[v] > vertices) {
             depthFirstSearch(v, graph, used, onDiscoverVertex([&](size_t v) {
                 builder.thereIsNoShortestPathTo(v);
@@ -592,6 +811,54 @@ SingleSourceShortestPathInfo<typename Graph::EdgeType> tarjan(
 }
 
 // Shortest path Tarjan: end
+
+template<class Graph>
+SingleSourceShortestPathInfo<typename Graph::EdgeType> floyd(
+        size_t source,
+        const Graph& graph) {
+    typedef typename Graph::EdgeType EdgeType;
+    typedef typename EdgeType::WeightType WeightType;
+    size_t vertices = graph.verticesNumber();
+
+
+    std::vector<std::vector<WeightType>> am(vertices, std::vector<WeightType>(vertices,
+                std::numeric_limits<WeightType>::max()));
+    std::vector<std::vector<EdgeType const*>> p(vertices,
+            std::vector<EdgeType const*>(vertices, nullptr));
+    for (size_t i = 0; i < vertices; ++i) {
+        am[i][i] = 0;
+        for (const auto& e: graph.outgoingEdges(i)) {
+            if (am[::source(e)][target(e)] > weight(e)) {
+                am[::source(e)][target(e)] = weight(e);
+                p[::source(e)][target(e)] = &e;
+            }
+        }
+    }
+
+    for (size_t k = 0; k < vertices; ++k) {
+        for (size_t i = 0; i < vertices; ++i) {
+            for (size_t j = 0; j < vertices; ++j) {
+                if (am[i][k] == std::numeric_limits<WeightType>::max() ||
+                        am[k][j] == std::numeric_limits<WeightType>::max())
+                    continue;
+                if (am[i][j] > am[i][k] + am[k][j]) {
+                    am[i][j] = am[i][k] + am[k][j];
+                    p[i][j] = p[k][j];
+                }
+            }
+        }
+    }
+
+    SingleSourceShortestPathInfoBuilder<EdgeType> builder(vertices, source);
+    for (size_t i = 0; i < vertices; ++i) {
+        for (size_t j = 0; j < vertices; ++j) {
+            if (j != source)
+                builder.relax(*p[source][j], [](...){});
+        }
+    }
+    return builder.build();
+}
+
 
 // Cost max flow net: begin
 
@@ -647,7 +914,29 @@ struct CostFlowNetEdge {
     size_t flowEdgeIndex;
 };*/
 
-typedef CostFlowNetEdge* ResidualNetEdge;
+struct ResidualNetEdge{
+    typedef long long WeightType;
+
+    ResidualNetEdge():
+        edge(nullptr),
+        weight(0) {
+    }
+
+    ResidualNetEdge(const CostFlowNetEdge* edge, long long weight):
+        edge(edge), weight(weight) {
+    }
+
+    const CostFlowNetEdge* edge;
+    long long weight;
+};
+
+size_t source(const ResidualNetEdge& edge) {
+    return edge.edge->source;
+}
+
+size_t target(const ResidualNetEdge& edge) {
+    return edge.edge->target;
+}
 
 class CostFlowNet {
 public:
@@ -728,8 +1017,8 @@ public:
     }
 
 private:
-    CostFlowNetEdge& getFlowEdge(const ResidualNetEdge& edge) {
-        return net_[edge.source][edge.flowEdgeIndex];
+    CostFlowNetEdge& getFlowEdge(const ResidualNetEdge edge) {
+        return *const_cast<CostFlowNetEdge*>(edge.edge);
     }
 
     std::vector<std::vector<CostFlowNetEdge>> net_;
@@ -746,6 +1035,7 @@ public:
     explicit ResidualNet(const CostFlowNet* costFlowNet):
         costFlowNet_(costFlowNet),
         potentials_(costFlowNet->verticesNumber()) {
+            cache_.resize(verticesNumber());
             up();
     }
 
@@ -754,26 +1044,36 @@ public:
     }
 
     void up() {
-        cache_.resize(verticesNumber());
         cache_valid_.assign(verticesNumber(), false);
     }
 
-    std::vector<ResidualNetEdge> outgoingEdges(size_t vertex) const {
+    const std::vector<ResidualNetEdge>& outgoingEdges(size_t vertex) const {
         if (!cache_valid_[vertex]) {
-        std::vector<ResidualNetEdge> &edges = cache_[vertex];
-        edges.clear();
-        size_t index = 0;
-        for (const CostFlowNetEdge& edge: costFlowNet_->outgoingEdges(vertex)) {
-            if (edge.capacity > 0) {
-                edges.push_back(ResidualNetEdge(
-                    edge.source,
-                    edge.target,
-                    edge.cost + potentials_[edge.source] - potentials_[edge.target],
-                    index
-                ));
+            std::vector<ResidualNetEdge> &edges = cache_[vertex];
+            edges.clear();
+            size_t index = 0;
+            for (const CostFlowNetEdge& edge: costFlowNet_->outgoingEdges(vertex)) {
+                if (edge.capacity > 0) {
+                    /*edges.push_back(ResidualNetEdge(
+                        edge.source,
+                        edge.target,
+                        edge.cost + potentials_[edge.source] - potentials_[edge.target],
+                        index
+                    ));*/
+                    edges.push_back(ResidualNetEdge(
+                        &edge,
+                        edge.cost + potentials_[edge.source] - potentials_[edge.target]));
+                    if (edge.cost + potentials_[edge.source] - potentials_[edge.target] < 0) {
+                        //debug(edge.cost);
+                        //debug(potentials_[edge.source]);
+                        //debug(potentials_[edge.target]);
+                        //throw 4;
+                    }
+                }
+                ++index;
             }
-            ++index;
-        }
+            //debug(index);
+            //debug(cache_[vertex].size());
         }
         cache_valid_[vertex] = 1;
         return cache_[vertex];//edges;
@@ -782,7 +1082,14 @@ public:
     template<class Range>
     void updatePotentials(Range additions) {
         auto it = potentials_.begin();
-        std::transform(additions.begin(), additions.end(), it, it, std::plus<long long>());
+        std::transform(additions.begin(), additions.end(), it, it,
+                [](long long x, long long y) {
+                    return x + y;
+                    if (x >= LLINF - y)
+                        return LLINF;
+                    return x + y;
+                }
+                );
     }
 
 private:
@@ -794,16 +1101,27 @@ private:
 
 // Cost max flow net: end
 
+
+
 // Min cost max flow: begin
 CostFlowNet findMinCostMaxFlow(CostFlowNet net,
         size_t maxFlowValue = std::numeric_limits<size_t>::max()) {
     ResidualNet residualNet(&net);
+    debug(net.totalFlow());
     if (1) {
-        auto info = tarjan(net.source(), residualNet);
+        SingleSourceShortestPathInfo<ResidualNetEdge> info;
+        info = tarjan(net.source(), residualNet);
+
         auto distances = info.distances();
+        //std::cerr << "DIST : ";
+        //for (auto x: distances) {
+        //.dbfseventsd    cerr << x << " ";
+        //}
+        //cerr << "\n";
         residualNet.updatePotentials(distances);
     }
     while(net.totalFlow() < maxFlowValue) {
+        debug(net.totalFlow());
         residualNet.up();
         auto info = dijkstra(net.source(), residualNet);
         if (!info.isReachable(net.sink())) {
@@ -915,6 +1233,44 @@ int fordBellmanSubmit() {
             cout << "*\n";
         }
     }
+    debug(IterationsCount);
+    return 0;
+}
+
+int floydSubmit() {
+    // http://codeforces.ru/gym/100230/attachments
+    // problem C
+    std::ios_base::sync_with_stdio(false);
+    freopen("path.in", "r", stdin);
+    freopen("path.out", "w", stdout);
+    int n, m;
+    cin >> n >> m;
+    DirectedGraph<Edge<ll>> graph(n);
+    size_t s;
+    cin >> s;
+    --s;
+
+    for (int i = 0; i < m; ++i) {
+        int x, y;
+        ll z;
+        cin >> x >> y >> z;
+        --x;
+        --y;
+        graph.addEdge(Edge<ll>(x,y,z));
+    }
+    auto info = floyd(s, graph);
+    for (size_t i = 0; i < n; ++i) {
+        if (info.isReachable(i)) {
+            if (info.isShortestPathTo(i)) {
+                cout << info.distanceTo(i) << "\n";
+            } else {
+                cout << "-\n";
+            }
+        } else {
+            cout << "*\n";
+        }
+    }
+    debug(IterationsCount);
     return 0;
 }
 
@@ -951,10 +1307,11 @@ int tarjanSubmit() {
             cout << "*\n";
         }
     }
+    debug(IterationsCount);
     return 0;
 }
 
-int anyShortestPathSubmit() {
+int anyShortestPathSubmit(const string& algo) {
     // http://codeforces.ru/contest/20/problem/C
     std::ios_base::sync_with_stdio(false);
 
@@ -970,7 +1327,16 @@ int anyShortestPathSubmit() {
         graph.addEdge(Edge<ll>(x,y,z));
         graph.addEdge(Edge<ll>(y,x,z));
     }
-    auto info = tarjan(0, graph);
+    SingleSourceShortestPathInfo<Edge<ll>> info;
+    if (algo == "dijkstra") {
+        info = dijkstra(0, graph);
+    } else if (algo == "tarjan") {
+        info = tarjan(0, graph);
+    } else if (algo == "fordBellman") {
+        info = fordBellman(0, graph);
+    } else {
+        assert(false);
+    }
     size_t t = n - 1;
     if (info.isReachable(t)) {
         auto path = info.pathTo(t);
@@ -994,16 +1360,29 @@ int findMinCostMaxFlowSubmit() {
     for (int i = 0; i < n; ++i) {
         cin >> s[i] >> t[i] >> c[i];
     }
+    /*if (s[0] == 1000000000 && t[0] == c[0] && t[0] == 1) {
+        for (int i = 990; i < n; ++i) {
+            cout << s[i] << " " << " " << t[i] << " " << c[i] << " ";
+        }
+        cout << ":)";
+        return 0;
+    }*/
+    vi p(n);
+    for (int i = 0; i < n; ++i)
+        p[i] = i;
+    random_shuffle(all(p));
+
     CostFlowNet net(n + n + 2);
     net.setSource(2 * n);
     net.setSink(2 * n + 1);
-    G = 2 * n + 1;
-    for (int i = 0; i < n; ++i) {
+    for (int i: p) {
+    //for (int i = 0; i < n; ++i) {
         net.addEdge(net.source(), 2 * i, 1, 0);
         net.addEdge(i * 2, i * 2 + 1, 1, -c[i]);
         net.addEdge(2 * i + 1, net.sink(), 1, 0);
 
-        for (int j = 0; j < n; ++j) {
+        for (int j: p) {
+        //for (int j = 0; j < n; ++j) {
             if (s[i] + t[i] <= s[j]) {
                 net.addEdge(i * 2 + 1, j * 2, 1, 0);
             }
@@ -1019,10 +1398,29 @@ int findMinCostMaxFlowSubmit() {
         }
         cout << ans << " ";
     }
+    debug(IterationsCount);
     return 0;
 }
 
 int main() {
+    IterationsCount = 0;
+    /*MyList<int> l;
+    l.insert(l.begin(), 1);
+    auto i = l.insert(l.begin(), 3);
+    l.insert(l.begin(), 2);
+    for (int j = 100; j < 130; ++j)
+        l.insert(l.begin(), j);
+    l.erase(i);
+
+    for (auto x: l) {
+        cerr << x<< " ";
+    }
+    return 0;*/
+    //return fordBellmanSubmit();
+    //return floydSubmit();
+    //return tarjanSubmit();
+    //return anyShortestPathSubmit();
     return findMinCostMaxFlowSubmit();
+    //return anyShortestPathSubmit("tarjan");
 }
 

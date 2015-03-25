@@ -1,0 +1,6 @@
+{"  BOB", "TOMMY", "  JIM" }
+{"BOB","TOMMY","JIM"}
+{"JOHN", "JAKE", "ALAN", "BLUE" }
+{"JOHN","JAKE","ALAN","BLUE"}
+{"LONGEST", "      A", " LONGER", "  SHORT" }
+{"LONGEST","A","LONGER","SHORT"}
