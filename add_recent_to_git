@@ -1,0 +1,7 @@
+#/usr/bin/sh -e
+find opencup/  codeforces/ codejam/ facebook hacker-rank russiancodecup snarknews topcoder -name "*.cpp" | xargs git add
+find opencup/  codeforces/ codejam/ facebook hacker-rank russiancodecup snarknews topcoder -name "*.py" | xargs git add
+find opencup/  codeforces/ codejam/ facebook hacker-rank russiancodecup snarknews topcoder -name "*.sh" | xargs git add
+find opencup/  codeforces/ codejam/ facebook hacker-rank russiancodecup snarknews topcoder -name Makefile | xargs git add
+find opencup/  codeforces/ codejam/ facebook hacker-rank russiancodecup snarknews topcoder -name "t[0-9]" | xargs git add
+git status -uno | less -R
