@@ -19,6 +19,7 @@
 #include <unordered_map>
 #include <functional>
 #include <bitset>
+#include <boost/algorithm/string/split.hpp>
 
 using namespace std;
 
@@ -199,6 +200,15 @@ Point NORM(Point p) {
 }
 
 int main() {
+    {
+        using namespace boost;
+        typedef vector< string > split_vector_type;
+
+        split_vector_type SplitVec; // #2: Search for tokens
+        split( SplitVec, "  hello   world  ", [](char ch) {return ch == ' ';}, token_compress_off );
+        debug(SplitVec);
+        exit(0);
+    }
     int n;
     cin >> n;
     vector<Point> p;
