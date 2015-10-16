@@ -21,10 +21,13 @@
 #include <bitset>
 #include <valarray>
 #include <utility>
+
+#if GCC_VERSION > 40900
 #include <ext/pb_ds/assoc_container.hpp>
 #include <ext/pb_ds/tree_policy.hpp>
 
 using namespace __gnu_pbds;
+#endif
 using namespace std;
 
 #ifdef LOCAL_RUN

@@ -98,6 +98,21 @@ int up(int v, int p, const vii& dp) {
 }
 
 int main() {
+    while(1)
+    {
+        int M = 1000* 1000 * 1000;
+        int x = rand() % M;
+        int y = rand() % M;
+        ++x;
+        ++y;
+        if (1LL * x* y != 1LL * int(x*y) && int(x * y) >= 0) {
+            debug(x);
+            debug(y);
+            debug(x*y);
+            debug(476284980*4);
+            return 0;
+        }
+    }
     int n;
     cin >> n;
     vector<vector<int>> childs(n);

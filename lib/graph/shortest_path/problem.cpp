@@ -812,53 +812,6 @@ SingleSourceShortestPathInfo<typename Graph::EdgeType> tarjan(
 
 // Shortest path Tarjan: end
 
-template<class Graph>
-SingleSourceShortestPathInfo<typename Graph::EdgeType> floyd(
-        size_t source,
-        const Graph& graph) {
-    typedef typename Graph::EdgeType EdgeType;
-    typedef typename EdgeType::WeightType WeightType;
-    size_t vertices = graph.verticesNumber();
-
-
-    std::vector<std::vector<WeightType>> am(vertices, std::vector<WeightType>(vertices,
-                std::numeric_limits<WeightType>::max()));
-    std::vector<std::vector<EdgeType const*>> p(vertices,
-            std::vector<EdgeType const*>(vertices, nullptr));
-    for (size_t i = 0; i < vertices; ++i) {
-        am[i][i] = 0;
-        for (const auto& e: graph.outgoingEdges(i)) {
-            if (am[::source(e)][target(e)] > weight(e)) {
-                am[::source(e)][target(e)] = weight(e);
-                p[::source(e)][target(e)] = &e;
-            }
-        }
-    }
-
-    for (size_t k = 0; k < vertices; ++k) {
-        for (size_t i = 0; i < vertices; ++i) {
-            for (size_t j = 0; j < vertices; ++j) {
-                if (am[i][k] == std::numeric_limits<WeightType>::max() ||
-                        am[k][j] == std::numeric_limits<WeightType>::max())
-                    continue;
-                if (am[i][j] > am[i][k] + am[k][j]) {
-                    am[i][j] = am[i][k] + am[k][j];
-                    p[i][j] = p[k][j];
-                }
-            }
-        }
-    }
-
-    SingleSourceShortestPathInfoBuilder<EdgeType> builder(vertices, source);
-    for (size_t i = 0; i < vertices; ++i) {
-        for (size_t j = 0; j < vertices; ++j) {
-            if (j != source)
-                builder.relax(*p[source][j], [](...){});
-        }
-    }
-    return builder.build();
-}
-
 
 // Cost max flow net: begin
 
@@ -1111,7 +1064,6 @@ CostFlowNet findMinCostMaxFlow(CostFlowNet net,
     if (1) {
         SingleSourceShortestPathInfo<ResidualNetEdge> info;
         info = tarjan(net.source(), residualNet);
-
         auto distances = info.distances();
         //std::cerr << "DIST : ";
         //for (auto x: distances) {
@@ -1222,43 +1174,6 @@ int fordBellmanSubmit() {
         graph.addEdge(Edge<ll>(x,y,z));
     }
     auto info = fordBellman(s, graph);
-    for (size_t i = 0; i < n; ++i) {
-        if (info.isReachable(i)) {
-            if (info.isShortestPathTo(i)) {
-                cout << info.distanceTo(i) << "\n";
-            } else {
-                cout << "-\n";
-            }
-        } else {
-            cout << "*\n";
-        }
-    }
-    debug(IterationsCount);
-    return 0;
-}
-
-int floydSubmit() {
-    // http://codeforces.ru/gym/100230/attachments
-    // problem C
-    std::ios_base::sync_with_stdio(false);
-    freopen("path.in", "r", stdin);
-    freopen("path.out", "w", stdout);
-    int n, m;
-    cin >> n >> m;
-    DirectedGraph<Edge<ll>> graph(n);
-    size_t s;
-    cin >> s;
-    --s;
-
-    for (int i = 0; i < m; ++i) {
-        int x, y;
-        ll z;
-        cin >> x >> y >> z;
-        --x;
-        --y;
-        graph.addEdge(Edge<ll>(x,y,z));
-    }
-    auto info = floyd(s, graph);
     for (size_t i = 0; i < n; ++i) {
         if (info.isReachable(i)) {
             if (info.isShortestPathTo(i)) {
@@ -1403,6 +1318,7 @@ int findMinCostMaxFlowSubmit() {
 }
 
 int main() {
+    debug(RAND_MAX);
     IterationsCount = 0;
     /*MyList<int> l;
     l.insert(l.begin(), 1);
@@ -1417,10 +1333,9 @@ int main() {
     }
     return 0;*/
     //return fordBellmanSubmit();
-    //return floydSubmit();
-    //return tarjanSubmit();
+    return tarjanSubmit();
     //return anyShortestPathSubmit();
-    return findMinCostMaxFlowSubmit();
+    //return findMinCostMaxFlowSubmit();
     //return anyShortestPathSubmit("tarjan");
 }
 

@@ -75,20 +75,28 @@ using MapWithOrderStatistics = tree<Key, Value,
       tree_order_statistics_node_update>;
 #endif
 
-void dfs(int v, const vii& al, vii& childs, vi& leafs, int p = -1) {
+int iterations;
+
+void dfs(int v, const vii& al, vii& childs, vi& leafs, vii& sizes, int p = -1) {
     for (int v2: al[v]) {
         if (v2 == p)
             continue;
-        dfs(v2, al, childs, leafs, v);
+        dfs(v2, al, childs, leafs, sizes, v);
         childs[v].push_back(v2);
         leafs[v] += leafs[v2];
     }
     if (childs[v].empty())
         leafs[v] += 1;
+    int c = (int)childs[v].size() + 1;
+    sizes[v].resize(c);
+    for (int i = c - 2; i >= 0; --i) {
+         sizes[v][i] = sizes[v][i+1] + leafs[childs[v][i]];
+    }
 }
 
 int solve(int v, int pos, int need, int color,
-        viii& dp1, viii& dp2, const vii& childs, const vi& leafs) {
+        viii& dp1, viii& dp2, const vii& childs, const vi& leafs,
+        const vii& sizes) {
     if (childs[v].empty()) {
         if (color == need) {
             return 0;
@@ -108,12 +116,13 @@ int solve(int v, int pos, int need, int color,
         }
     }
     int v2 = childs[v][pos];
-    for (int i = 0; i <= need && i <= leafs[v2]; ++i) {
-        res = min(res, solve(v2, 0, i, color, dp1, dp2, childs, leafs) +
-                       solve(v, pos + 1, need - i, color, dp1, dp2, childs, leafs));
+    for (int i = max(0, -sizes[v][pos+1] + need); i <= need && i <= leafs[v2]; ++i) {
+        iterations += 1;
+        res = min(res, solve(v2, 0, i, color, dp1, dp2, childs, leafs, sizes) +
+                       solve(v, pos + 1, need - i, color, dp1, dp2, childs, leafs, sizes));
 
-        res = min(res, 1+solve(v2, 0, i, 1^color, dp1, dp2, childs, leafs) +
-                       solve(v, pos + 1, need - i, color, dp1, dp2, childs, leafs));
+        res = min(res, 1+solve(v2, 0, i, 1^color, dp1, dp2, childs, leafs, sizes) +
+                       solve(v, pos + 1, need - i, color, dp1, dp2, childs, leafs, sizes));
     }
     return res;
 }
@@ -142,9 +151,10 @@ int main() {
         cout << "1\n";
         return 0;
     }
-    dfs(root, al, childs, leafs);
+    debug(root + 1);
+    vii sizes(n);
+    dfs(root, al, childs, leafs, sizes);
 
-    debug(leafs);
     viii dp1(n);
     for (int i = 0; i < n; ++i) {
         for (size_t j = 0; j <= childs[i].size(); ++j) {
@@ -152,7 +162,7 @@ int main() {
         }
     }
     viii dp2 = dp1;
-    cout << solve(root, 0, leafs[root]/2, 0, dp1, dp2, childs, leafs) << "\n";
-
+    cout << solve(root, 0, leafs[root]/2, 0, dp1, dp2, childs, leafs, sizes) << "\n";
+    debug(iterations);
     return 0;
 }
