@@ -92,10 +92,24 @@ vi order(int n) {
     return res;
 }
 
+void t(vii& a) {
+    vii b(a[0].size(), vi(a.size(), -1));
+    for (int i = 0; i < (int)a.size(); ++i) {
+        for (int j = 0; j < (int)a[0].size(); ++j)
+            b[j][i] = a[i][j];
+    }
+    a = b;
+}
+
 int main() {
     std::ios_base::sync_with_stdio(false);
     int n, m;
     cin >> n >> m;
+    bool f = 0;
+    if (m > n) {
+        swap(n,m);
+        f = 1;
+    }
     vii ans(n, vi(m, -1));
     vi cols = order(m);
     vi rows = order(n);
@@ -112,6 +126,8 @@ int main() {
         }
         y = rows2.back();
     }
+    if (f)
+        t(ans);
     for (auto line: ans) {
         for (int x: line) {
             cout << x + 1 << " ";

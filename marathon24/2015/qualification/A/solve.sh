@@ -14,3 +14,4 @@ done;
 zip answer.zip *.out
 
 printf "\033[0;32mSolved!\033[0m\n"
+ls -lh answer.zip
