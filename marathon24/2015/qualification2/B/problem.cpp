@@ -61,7 +61,7 @@ ostream& operator << (ostream& o, const set<T>& v) {o << "{";O__(o, v);o << "}";
 typedef long long ll;
 typedef pair<int, int> pii;
 typedef pair<double, double> pdd;
-typedef vector<int> vi;
+typedef vector<ll> vi;
 typedef vector<vi> vii;
 typedef vector<vii> viii;
 
@@ -77,6 +77,59 @@ using MapWithOrderStatistics = tree<Key, Value,
       std::less<Key>, rb_tree_tag /*splay_tree_tag*/,
       tree_order_statistics_node_update>;
 #endif
+
+#define aat(a,P) a[P.first][P.second]
+
+const int N;
+int c[N][N];
+int k[N][N];
+int n,m;
+
+typedef pii Pos;
+
+struct Data {
+    ll dist;
+    vi path;
+};
+
+vector<Data> findDist(const Pos& pos, const vector<Pos>& targets) {
+    vii dist(n, vi(m, INF));
+    vector<vector<pii>> prev(n, vi(m, pii(-1,-1)));
+    aat(dist, pos) = 0;
+    int rem = (int)targets.size();
+    set<pair<int, Pos>> Q;
+    Q.emplace(0, pos);
+    while (!Q.empty()) {
+        Pos v = Q.begin()->second;
+        Q.erase(Q.begin());
+        for (int dx = -1; dx <= +1; ++dx) {
+            for (int dy = -1; dy <= +1; ++dy) {
+                if (abs(dx) + abs(dy) == 1) {
+                    Pos v2(v.first + dx, v.second + dy);
+                    if (v2.first >= 0 && v2.second >= 0 &&
+                            v2.first < n && v2.second < m) {
+                        ll nd=  aat(dist,v) + 1LL * (1+aat(k, v2)) * aat(c, v2);
+                        if (aat(dist, v2) > nd) {
+                            Q.erase(make_pair(aat(dist, v2), v2));
+                            aat(dist,v2) = nd;
+                            aat(prev, v2) = v;
+                            if (binary_search(all(targets), v2)) {
+                                --rem;
+                            }
+                            Q.insert(make_pair(aat(dist, v2), v2));
+                        }
+                    }
+                }
+            }
+        }
+        if (rem == 0)
+            break;
+    }
+    vector<Data> ans;
+    for (int i = 0; i < targets.size(); ++i){
+
+    }
+}
 
 int main() {
     std::ios_base::sync_with_stdio(false);

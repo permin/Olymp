@@ -2,11 +2,11 @@
 
 #7z x inputs_test.zip
 
-NAME=""
+NAME="str"
 FROM="01"
-TO="99"
+TO="06"
 
-make
+make prod
 
 for x in `ls ${NAME}*.in`; do
     if [[ ! "$x" < "${NAME}${FROM}.in" && ! "$x" > "${NAME}${TO}.in" ]]; then
