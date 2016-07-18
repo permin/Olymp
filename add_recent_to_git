@@ -1,9 +1,13 @@
 #/usr/bin/sh -e
-FOLDERS="opencup/  codeforces/ codejam/ facebook hacker-rank russiancodecup snarknews topcoder marathon24"
+FOLDERS="opencup  codeforces codejam facebook hacker-rank russiancodecup snarknews topcoder marathon24"
 
-find $FOLDERS -name "*.cpp" | xargs git add
-find $FOLDERS -name "*.py" | xargs git add
-find $FOLDERS -name "*.sh" | xargs git add
-find $FOLDERS -name Makefile | xargs git add
-find $FOLDERS -name "t[0-9]" | xargs git add
+for folder in $FOLDERS
+do
+  echo $folder
+  find $folder -name "*.cpp" | xargs git add
+  find $folder -name "*.py" | xargs git add
+  find $folder -name "*.sh" | xargs git add
+  find $folder -name Makefile | xargs git add
+  find $folder -name "t[0-9]" | xargs git add
+done
 git status -uno | less -R

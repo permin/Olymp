@@ -174,11 +174,13 @@ int main() {
   int to = min(n, from + B);
   ll sum = 0;
   vector<ll> landscape;
+  landscape.reserve(to - from);
   for (int i = from; i < to; ++i) {
     ll x = GetStackHeight(i + 1);
     sum += x;
     landscape.push_back(x);
   }
+  landscape.shrink_to_fit();
   ll total_sum = 0;
   std::vector<ll> actual_sums;
   if (!is_master()) {
